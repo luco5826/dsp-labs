@@ -1,13 +1,6 @@
-import dayjs from "dayjs";
-import isYesterday from "dayjs/plugin/isYesterday";
-import isTomorrow from "dayjs/plugin/isTomorrow";
-import isToday from "dayjs/plugin/isToday";
-
-import { Form, ListGroup, Button } from "react-bootstrap/";
+import { Form, ListGroup, Button } from "react-bootstrap";
 import { PersonSquare, PencilSquare, Trash } from "react-bootstrap-icons";
 import Pagination from "react-js-pagination";
-
-dayjs.extend(isYesterday).extend(isToday).extend(isTomorrow);
 
 const formatDeadline = (d) => {
   if (!d) return "--o--";
@@ -22,114 +15,112 @@ const formatDeadline = (d) => {
   }
 };
 
-const TaskRowData = (props) => {
-  const { task, onCheck, filter } = props;
-  const labelClassName = `${task.important ? "important" : ""} ${
-    task.completed ? "completed" : ""
-  }`;
+const TaskRowData = ({ task, onCheck, filter }) => {
+  const labelClasses = [
+    task.important ? "important" : "",
+    task.completed ? "completed" : "",
+  ];
 
   return (
-    <>
-      <div className="flex-fill m-auto">
-        <Form.Group className="m-0" controlId="formBasicCheckbox">
-          <Form.Check type="checkbox">
-            {filter === "assigned" ? (
-              <Form.Check.Input
-                type="radio"
-                checked={task.active}
-                onChange={(ev) => onCheck(ev.target.checked)}
-              />
-            ) : null}
-            <Form.Check.Label className={labelClassName}>
-              {task.description}
-            </Form.Check.Label>
-          </Form.Check>
-        </Form.Group>
-      </div>
-      <div className="flex-fill mx-2 m-auto">
-        <PersonSquare className={task.private ? "invisible" : ""} />
-      </div>
-      <div className="flex-fill m-auto">
-        <small>{formatDeadline(task.deadline)}</small>
-      </div>
-    </>
-  );
-};
-
-const TaskRowControl = (props) => {
-  const { task, onDelete, onEdit, onComplete, filter } = props;
-  return (
-    <div className="ml-10">
-      {filter === "owned" ? (
-        <>
-          <Button variant="link" className="shadow-none" onClick={onEdit}>
-            <PencilSquare />
-          </Button>
-          <Button variant="link" className="shadow-none" onClick={onDelete}>
-            <Trash />
-          </Button>
-        </>
-      ) : task.completed ? (
-        <Button variant="success" className="shadow-none" disabled>
-          Completed
-        </Button>
-      ) : (
-        <Button variant="success" className="shadow-none" onClick={onComplete}>
-          Complete
-        </Button>
-      )}
+    <div className="d-flex flex-fill justify-content-between align-items-center">
+      <Form.Check type="checkbox">
+        {filter === "assigned" && (
+          <Form.Check.Input
+            type="radio"
+            checked={task.active}
+            onChange={(ev) => onCheck(ev.target.checked)}
+          />
+        )}
+        <Form.Check.Label className={labelClasses.join(" ")}>
+          {task.description}
+        </Form.Check.Label>
+      </Form.Check>
+      <PersonSquare className={task.private ? "d-none" : ""} />
+      <small>{formatDeadline(task.deadline)}</small>
     </div>
   );
 };
 
-const ContentList = (props) => {
-  const { tasks, onDelete, onEdit, onCheck, onComplete, filter, getTasks } =
-    props;
+const TaskRowControl = ({ task, onDelete, onEdit, onComplete, filter }) => {
+  let buttons = null;
+  switch (filter) {
+    case "owned":
+      buttons = (
+        <>
+          <Button className="py-0" variant="link" onClick={onEdit}>
+            <PencilSquare />
+          </Button>
+          <Button className="py-0" variant="link" onClick={onDelete}>
+            <Trash />
+          </Button>
+        </>
+      );
+      break;
+    case "assigned":
+      buttons = (
+        <Button
+          className="py-0"
+          variant="success"
+          disabled={task.completed}
+          onClick={onComplete}
+        >
+          Complete
+        </Button>
+      );
+      break;
+    default:
+      break;
+  }
 
-  // handle change event
-  const handlePageChange = (pageNumber) => {
-    getTasks(filter, pageNumber);
+  return buttons;
+};
+
+const ContentList = ({
+  tasks,
+  pageInfo,
+  onDelete,
+  onEdit,
+  onCheck,
+  onComplete,
+  filter,
+  onPageChange,
+}) => {
+  const handlePageChange = (page) => {
+    onPageChange(filter, page);
   };
+
   return (
     <>
-      <ListGroup as="ul" variant="flush">
-        {tasks.map((t) => {
-          return (
-            <ListGroup.Item
-              as="li"
-              key={t.id}
-              className="d-flex w-100 justify-content-between"
-            >
-              <TaskRowData
-                task={t}
-                onCheck={(flag) => onCheck(t, flag)}
-                filter={filter}
-              />
-              <TaskRowControl
-                task={t}
-                onDelete={() => onDelete(t)}
-                onEdit={() => onEdit(t)}
-                onComplete={() => onComplete(t)}
-                filter={filter}
-              />
-            </ListGroup.Item>
-          );
-        })}
+      <ListGroup>
+        {tasks.map((task) => (
+          <ListGroup.Item
+            key={task.id}
+            className="d-flex justify-content-between align-items-center"
+          >
+            <TaskRowData
+              task={task}
+              onCheck={(flag) => onCheck(task, flag)}
+              filter={filter}
+            />
+            <TaskRowControl
+              task={task}
+              onDelete={() => onDelete(task)}
+              onEdit={() => onEdit(task)}
+              onComplete={() => onComplete(task)}
+              filter={filter}
+            />
+          </ListGroup.Item>
+        ))}
       </ListGroup>
       <Pagination
         itemClass="page-item" // add it for bootstrap 4
         linkClass="page-link" // add it for bootstrap 4
-        activePage={Number.parseInt(localStorage.getItem("currentPage")) || 0}
-        itemsCountPerPage={
-          localStorage.getItem("totalItems") /
-          localStorage.getItem("totalPages")
-        }
-        totalItemsCount={
-          Number.parseInt(localStorage.getItem("totalItems")) || 0
-        }
+        activePage={pageInfo.currentPage}
+        itemsCountPerPage={pageInfo.totalItems / pageInfo.totalPages}
+        totalItemsCount={pageInfo.totalItems}
         pageRangeDisplayed={10}
         onChange={handlePageChange}
-        pageSize={localStorage.getItem("totalPages")}
+        pageSize={pageInfo.totalPages}
       />
     </>
   );

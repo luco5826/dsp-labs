@@ -1,5 +1,5 @@
 {
-  "name": "ToDoManagerClient",
+  "name": "todomanager-client",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
@@ -8,17 +8,13 @@
     "@testing-library/user-event": "^12.1.10",
     "bootstrap": "^4.6.0",
     "dayjs": "^1.10.4",
-    "express-session": "^1.17.2",
-    "moment": "^2.29.1",
-    "passport": "^0.4.1",
-    "passport-local": "^1.0.0",
     "react": "^17.0.2",
     "react-bootstrap": "^1.5.2",
     "react-bootstrap-icons": "^1.4.0",
     "react-dom": "^17.0.2",
     "react-js-pagination": "^3.0.3",
     "react-router-dom": "^5.2.0",
-    "react-scripts": "4.0.3",
+    "react-scripts": "5.0.0",
     "semantic-ui-react": "^2.0.4",
     "web-vitals": "^1.0.1"
   },

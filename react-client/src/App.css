@@ -1,18 +1,20 @@
 /* Global */
 
-/* reset link styles */ 
-a:link { text-decoration: none; }
-a:visited { text-decoration: none; }
-a:hover { text-decoration: none; }
-a:active { text-decoration: none; }
-
-.vheight-100 {
-  min-height: 100vh;
+/* reset link styles */
+a:link {
+  text-decoration: none;
+}
+a:visited {
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: none;
+}
+a:active {
+  text-decoration: none;
 }
 
-.below-nav {
-  padding-top: 5rem;
-}
+
 
 /* Filters and projects */
 .list-group-item {
@@ -32,7 +34,6 @@ a:active { text-decoration: none; }
   margin-top: 2rem;
 }
 
-
 .important {
   color: red;
 }
@@ -43,7 +44,8 @@ a:active { text-decoration: none; }
 
 .notbold {
   font-weight: normal;
-}​
+}
+​
 
 /* it is not used */
 .dummy {
@@ -58,7 +60,6 @@ a:active { text-decoration: none; }
   margin: 0 1.5rem 1.5rem 0;
   border-radius: 50%;
 }
-
 
 .fixed-right {
   position: absolute;
@@ -79,7 +80,7 @@ a:active { text-decoration: none; }
 }
 
 .toast {
-    position: absolute;
-    bottom: 15px;
-    left: 15px;
+  position: absolute;
+  bottom: 15px;
+  left: 15px;
 }

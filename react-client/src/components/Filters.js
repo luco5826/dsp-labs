@@ -1,20 +1,21 @@
-import {ListGroup} from 'react-bootstrap/';
+import { ListGroup } from "react-bootstrap/";
 
-/* get the list of labels to show, the one that is selected and the handler to notify a new selection */
-const Filters = (props) => {
-  const {items, onSelect} = props;
-
+const Filters = ({ items, defaultActiveKey, onSelect }) => {
   return (
-    <ListGroup as="div" variant="flush" defaultActiveKey={props.defaultActiveKey} >
-        {
-          Object.entries(items).map(([key, { label }]) => {
-            return (
-              <ListGroup.Item as="a" key={key} action active={key === props.defaultActiveKey} onClick={() => onSelect(key)}>{label}</ListGroup.Item>
-            );
-          })
-        }
+    <ListGroup as="div" variant="flush" defaultActiveKey={defaultActiveKey}>
+      <h3>Available filters</h3>
+      {Object.keys(items).map((key) => (
+        <ListGroup.Item
+          key={key}
+          action
+          active={key === defaultActiveKey}
+          onClick={() => onSelect(key)}
+        >
+          {items[key].label}
+        </ListGroup.Item>
+      ))}
     </ListGroup>
-  )
-}
+  );
+};
 
 export default Filters;

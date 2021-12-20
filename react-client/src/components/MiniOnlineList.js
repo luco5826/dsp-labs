@@ -1,24 +1,24 @@
 import React from "react";
 import ListGroup from "react-bootstrap/ListGroup";
+import world from "../images/world.png";
 
-const MiniOnlineList = (props) => {
-  const { onlineList } = props;
-
+const MiniOnlineList = ({ onlineList }) => {
   return (
-    <ListGroup variant="flush">
-      <ListGroup.Item className="p-3 mt-5 list-title">
+    <ListGroup variant="flush" className="mt-3">
+      <h3>
         Online Users
-      </ListGroup.Item>
+        <img
+          src={world}
+          alt={"Eagle"}
+          width="16"
+          height="16"
+          className="mx-3"
+        />
+      </h3>
       {onlineList.map((user) => (
-        <ListGroup.Item>
-          <img
-            src={require("../world.png").default}
-            alt={"Eagle"}
-            width="20"
-            height="20"
-          />
-          {" User: " + user.userName}
-        </ListGroup.Item>
+        <ListGroup.Item
+          key={user.userId}
+        >{`${user.userId} - ${user.userName}`}</ListGroup.Item>
       ))}
     </ListGroup>
   );

@@ -7,36 +7,18 @@ const Navigation = (props) => {
   const { onLogOut, loggedIn, user } = props;
 
   return (
-    <Navbar bg="success" variant="dark" fixed="top">
+    <Navbar bg="success" variant="dark" className="w-100 mb-3">
       <Navbar.Toggle aria-controls="left-sidebar" />
       <Navbar.Brand href="/">
-        <CheckAll className="mr-1" size="30" /> ToDo Manager
+        <CheckAll className="mr-1" size="30" />
+        ToDo Manager
       </Navbar.Brand>
 
+      {/* prettier-ignore */}
       <Nav className="mr-auto">
-        <Nav.Link
-          as={NavLink}
-          to="/tasks"
-          onClick={() => props.getInitialTasks()}
-        >
-          My Tasks
-        </Nav.Link>
-        <Nav.Link
-          as={NavLink}
-          to="/public"
-          onClick={() => props.getPublicTasks()}
-        >
-          {" "}
-          Public Tasks
-        </Nav.Link>
-        <Nav.Link as={NavLink} to="/online">
-          {" "}
-          Online
-        </Nav.Link>
-        <Nav.Link as={NavLink} to="/assignment">
-          {" "}
-          Assignment
-        </Nav.Link>
+        <Nav.Link as={NavLink} to="/list">My Tasks</Nav.Link>
+        <Nav.Link as={NavLink} to="/online">Online</Nav.Link>
+        <Nav.Link as={NavLink} to="/assignment">Assignment</Nav.Link>
       </Nav>
 
       <Nav className="justify-content-end">

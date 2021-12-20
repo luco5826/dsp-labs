@@ -1,89 +1,58 @@
-import React, { useEffect } from "react";
-import _ from "lodash";
+import React, { useState } from "react";
 import { Dropdown } from "semantic-ui-react";
 import Button from "react-bootstrap/Button";
 
-const Assignments = (props) => {
-  let {
-    OwnedTaskList,
-    getAllOwnedTasks,
-    UserList,
-    getUsers,
-    assignTask,
-    removeAssignTask,
-  } = props;
-  let tasksArray = [];
-  let userId = "-1";
-
-  useEffect(() => {
-    getUsers();
-    getAllOwnedTasks();
-  }, [getUsers, getAllOwnedTasks]);
-
-  const usersOptions = _.map(UserList, (id, index) => ({
-    key: UserList[index].userId,
-    text: UserList[index].userName,
-    value: UserList[index].userId,
-  }));
-
-  function assignUsers() {
-    assignTask(userId, tasksArray);
-  }
-
-  function removeAssignUser() {
-    removeAssignTask(userId, tasksArray);
-  }
-
-  const handleUsersDropdown = (e, { value }) => {
-    userId = value;
-  };
-
-  const handleTasksDropdown = (e, { value }) => {
-    tasksArray = value;
-  };
-
-  const stateOptions = _.map(OwnedTaskList, (id, index) => ({
-    key: OwnedTaskList[index].id,
-    text: OwnedTaskList[index].description,
-    value: OwnedTaskList[index].id,
-  }));
+const Assignments = ({
+  taskList,
+  userList,
+  addAssignment,
+  removeAssignment,
+}) => {
+  const [selectedTasks, setSelectedTasks] = useState([]);
+  const [selectedUser, setSelectedUser] = useState(-1);
 
   return (
     <div>
       <h1>Assign and Remove Tasks</h1>
       <Dropdown
-        placeholder="Users"
+        placeholder="Available users"
         fluid
         clearable
         selection
-        options={usersOptions}
-        onChange={handleUsersDropdown}
+        options={userList.map((user) => ({
+          key: user.userId,
+          text: user.userName,
+          value: user.userId,
+        }))}
+        onChange={(e, { value }) => setSelectedUser(value)}
       />
       <Dropdown
-        placeholder="Tasks"
+        placeholder="Available tasks"
         fluid
         multiple
         clearable
         selection
-        options={stateOptions}
-        onChange={handleTasksDropdown}
+        options={taskList.map((task) => ({
+          key: task.id,
+          text: task.description,
+          value: task.id,
+        }))}
+        onChange={(e, { value }) => setSelectedTasks(value)}
       />
-      <Button
-        onClick={assignUsers}
-        variant="success"
-        size="lg"
-        className="fixed-right"
-      >
-        Assign tasks to the user
-      </Button>
-      <Button
-        onClick={removeAssignUser}
-        variant="success"
-        size="lg"
-        className="fixed-right2"
-      >
-        Remove tasks to the user
-      </Button>
+      <div className="d-flex justify-content-between mt-2">
+        <Button
+          onClick={() => addAssignment(selectedUser, selectedTasks)}
+          variant="success"
+        >
+          Assign tasks to the user
+        </Button>
+        <Button
+          onClick={() => removeAssignment(selectedUser, selectedTasks)}
+          variant="success"
+        >
+          Remove tasks from the user
+        </Button>
+      </div>
     </div>
   );
 };

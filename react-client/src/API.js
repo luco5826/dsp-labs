@@ -31,27 +31,31 @@ function getJson(httpResponsePromise) {
 }
 
 const getTasks = async (filter, page) => {
-  let url =
-    filter === "owned"
-      ? BASEURL + "/users/" + localStorage.getItem("userId") + "/tasks/created"
-      : BASEURL +
-        "/users/" +
-        localStorage.getItem("userId") +
-        "/tasks/assigned";
+  let url = BASEURL + "/tasks/public";
+  if (filter === "owned") {
+    url =
+      BASEURL + "/users/" + localStorage.getItem("userId") + "/tasks/created";
+  } else if (filter === "assigned") {
+    url =
+      BASEURL + "/users/" + localStorage.getItem("userId") + "/tasks/assigned";
+  }
 
   if (page) {
     url += "?pageNo=" + page;
   }
   return getJson(fetch(url)).then((json) => {
-    localStorage.setItem("totalPages", json.totalPages);
-    localStorage.setItem("currentPage", json.currentPage);
-    localStorage.setItem("totalItems", json.totalItems);
-    const tasksJson = json.tasks;
-    return tasksJson.map((task) =>
-      Object.assign({}, task, {
-        deadline: task.deadline && dayjs(task.deadline),
-      })
-    );
+    return {
+      pageInfo: {
+        totalItems: Number.parseInt(json.totalItems),
+        totalPages: Number.parseInt(json.totalPages),
+        currentPage: Number.parseInt(json.currentPage),
+      },
+      tasks: json.tasks.map((task) =>
+        Object.assign({}, task, {
+          deadline: task.deadline && dayjs(task.deadline),
+        })
+      ),
+    };
   });
 };
 
@@ -243,7 +247,7 @@ async function assignTask(userId, taskId) {
       body: JSON.stringify({
         id: userId,
         email: localStorage.getItem("email"),
-        name: localStorage.getItem("name"),
+        name: localStorage.getItem("username"),
       }),
     })
       .then((response) => {
