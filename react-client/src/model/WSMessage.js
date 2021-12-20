@@ -8,4 +8,4 @@ class WSMessage {
   }
 }
 
-module.exports = WSMessage;
+export default WSMessage;

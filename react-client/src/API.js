@@ -3,8 +3,8 @@
  */
 
 import dayjs from "dayjs";
-import Task from "./components/Task";
-import User from "./components/User";
+import Task from "./model/Task";
+import User from "./model/User";
 
 const BASEURL = "/api";
 

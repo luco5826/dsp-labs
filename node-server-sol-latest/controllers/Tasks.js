@@ -166,7 +166,7 @@ module.exports.getPublicTasks = function getPublicTasks(req, res, next) {
     });
 };
 
-module.exports.getOwnedTasks = function getUserTasks(req, res, next) {
+module.exports.getOwnedTasks = async function getUserTasks(req, res, next) {
   if (req.user != req.params.userId) {
     utils.writeJson(
       res,
@@ -183,13 +183,9 @@ module.exports.getOwnedTasks = function getUserTasks(req, res, next) {
     return;
   }
 
-  var numOfTasks = 0;
   var next = 0;
 
-  var numOfTasks;
-  Tasks.getOwnedTasksTotal(req).then(function (response) {
-    numOfTasks = response;
-  });
+  const numOfTasks = await Tasks.getOwnedTasksTotal(req);
 
   Tasks.getOwnedTasks(req).then(function (response) {
     if (req.query.pageNo == null) var pageNo = 1;
@@ -225,7 +221,11 @@ module.exports.getOwnedTasks = function getUserTasks(req, res, next) {
   });
 };
 
-module.exports.getAssignedTasks = function getAssignedTasks(req, res, next) {
+module.exports.getAssignedTasks = async function getAssignedTasks(
+  req,
+  res,
+  next
+) {
   if (req.user != req.params.userId) {
     utils.writeJson(
       res,
@@ -242,13 +242,9 @@ module.exports.getAssignedTasks = function getAssignedTasks(req, res, next) {
     return;
   }
 
-  var numOfTasks = 0;
   var next = 0;
 
-  var numOfTasks;
-  Tasks.getAssignedTasksTotal(req).then(function (response) {
-    numOfTasks = response;
-  });
+  const numOfTasks = await Tasks.getAssignedTasksTotal(req);
 
   Tasks.getAssignedTasks(req).then(function (response) {
     if (req.query.pageNo == null) var pageNo = 1;
