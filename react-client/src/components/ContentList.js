@@ -27,7 +27,7 @@ const TaskRowData = ({ task, onCheck, filter }) => {
         {filter === "assigned" && (
           <Form.Check.Input
             type="radio"
-            checked={task.active}
+            checked={task.active || false}
             onChange={(ev) => onCheck(ev.target.checked)}
           />
         )}
@@ -112,16 +112,18 @@ const ContentList = ({
           </ListGroup.Item>
         ))}
       </ListGroup>
-      <Pagination
-        itemClass="page-item" // add it for bootstrap 4
-        linkClass="page-link" // add it for bootstrap 4
-        activePage={pageInfo.currentPage}
-        itemsCountPerPage={pageInfo.totalItems / pageInfo.totalPages}
-        totalItemsCount={pageInfo.totalItems}
-        pageRangeDisplayed={10}
-        onChange={handlePageChange}
-        pageSize={pageInfo.totalPages}
-      />
+      <div className="d-flex justify-content-center m-3">
+        <Pagination
+          itemClass="page-item" // add it for bootstrap 4
+          linkClass="page-link" // add it for bootstrap 4
+          activePage={pageInfo.currentPage}
+          itemsCountPerPage={pageInfo.totalItems / pageInfo.totalPages}
+          totalItemsCount={pageInfo.totalItems}
+          pageRangeDisplayed={10}
+          onChange={handlePageChange}
+          pageSize={pageInfo.totalPages}
+        />
+      </div>
     </>
   );
 };
