@@ -5,17 +5,16 @@ import {
   Switch,
   Redirect,
 } from "react-router-dom";
-
-import API from "./API";
-
 import { Container, Row, Toast } from "react-bootstrap";
 
-import Navigation from "./components/Navigation";
-import { LoginForm } from "./components/Login";
+import API from "./API";
 
 import OnlineListManager from "./pages/OnlineListManager";
 import TaskManager from "./pages/TaskManager";
 import AssignmentsManager from "./pages/AssignmentsManager";
+
+import Navigation from "./components/Navigation";
+import { LoginForm } from "./components/Login";
 
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./App.css";
