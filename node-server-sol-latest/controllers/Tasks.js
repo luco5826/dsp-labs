@@ -247,21 +247,23 @@ module.exports.getAssignedTasks = async function getAssignedTasks(
   const numOfTasks = await Tasks.getAssignedTasksTotal(req);
 
   Tasks.getAssignedTasks(req).then(function (response) {
-    if (req.query.pageNo == null) var pageNo = 1;
-    else var pageNo = req.query.pageNo;
-    var totalPage = Math.ceil(numOfTasks / constants.OFFSET);
+    let pageNo = 1;
+    if (req.query.pageNo !== undefined)
+      pageNo = Number.parseInt(req.query.pageNo);
 
-    next = Number(pageNo) + 1;
+    const totalPages = Math.ceil(numOfTasks / constants.OFFSET);
 
-    if (pageNo > totalPage) {
+    next = Number.parseInt(pageNo) + 1;
+
+    if (pageNo > totalPages) {
       utils.writeJson(
         res,
         { errors: [{ param: "Server", msg: "The page does not exist." }] },
         404
       );
-    } else if (pageNo == totalPage) {
+    } else if (pageNo === totalPages) {
       utils.writeJson(res, {
-        totalPages: totalPage,
+        totalPages,
         currentPage: pageNo,
         totalItems: numOfTasks,
         tasks: response,
@@ -270,7 +272,7 @@ module.exports.getAssignedTasks = async function getAssignedTasks(
       var nextLink =
         "/api/users/" + req.params.userId + "/tasks/assigned?pageNo=" + next;
       utils.writeJson(res, {
-        totalPages: totalPage,
+        totalPages,
         currentPage: pageNo,
         totalItems: numOfTasks,
         tasks: response,

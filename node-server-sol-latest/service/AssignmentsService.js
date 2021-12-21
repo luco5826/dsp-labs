@@ -6,10 +6,6 @@ const db = require("../components/db");
 var WSMessage = require("../components/ws_message.js");
 var WebSocket = require("../components/websocket");
 
-const reccuringQueries = {
-  GET_OWNER_BY_TASK_ID: "SELECT owner FROM tasks t WHERE t.id = ?",
-};
-
 /**
  * Assign a user to the task
  *
@@ -24,14 +20,15 @@ const reccuringQueries = {
  **/
 exports.assignTaskToUser = function (userId, taskId, owner) {
   return new Promise((resolve, reject) => {
-    db.all(reccuringQueries.GET_OWNER_BY_TASK_ID, [taskId], (error, rows) => {
-      if (error) reject(error);
-      if (rows.length === 0) reject(404);
-      if (owner != rows[0].owner) reject(403);
+    db.all(recurringQueries.GET_OWNER_BY_TASK_ID, [taskId], (error, rows) => {
+      if (error) return reject(error);
+      if (rows.length === 0) return reject(404);
+      if (owner != rows[0].owner) return reject(403);
 
       const insertStmt = "INSERT INTO assignments(task, user) VALUES(?,?)";
       db.run(insertStmt, [taskId, userId], (error) => {
-        if (error) reject(error);
+        if (error) return reject(error);
+
         resolve(null);
       });
     });
@@ -50,10 +47,10 @@ exports.assignTaskToUser = function (userId, taskId, owner) {
  **/
 exports.getUsersAssigned = function (taskId, owner) {
   return new Promise((resolve, reject) => {
-    db.all(reccuringQueries.GET_OWNER_BY_TASK_ID, [taskId], (err, rows) => {
-      if (err) reject(err);
-      else if (rows.length === 0) reject(404);
-      else if (owner != rows[0].owner) reject(403);
+    db.all(recurringQueries.GET_OWNER_BY_TASK_ID, [taskId], (err, rows) => {
+      if (err) return reject(err);
+      if (rows.length === 0) return reject(404);
+      if (owner != rows[0].owner) return reject(403);
 
       const sql2 = `
         SELECT u.id as uid, u.name, u.email 
@@ -62,7 +59,7 @@ exports.getUsersAssigned = function (taskId, owner) {
         AND a.user = u.id`;
 
       db.all(sql2, [taskId], (err, rows) => {
-        if (err) reject(err);
+        if (err) return reject(err);
 
         resolve(
           rows.map((row) => new User(row.uid, row.name, row.email, null))
@@ -85,14 +82,14 @@ exports.getUsersAssigned = function (taskId, owner) {
  **/
 exports.removeUser = function (taskId, userId, owner) {
   return new Promise((resolve, reject) => {
-    db.all(reccuringQueries.GET_OWNER_BY_TASK_ID, [taskId], (err, rows) => {
-      if (err) reject(err);
-      else if (rows.length === 0) reject(404);
-      else if (owner != rows[0].owner) reject(403);
+    db.all(recurringQueries.GET_OWNER_BY_TASK_ID, [taskId], (err, rows) => {
+      if (err) return reject(err);
+      if (rows.length === 0) return reject(404);
+      if (owner != rows[0].owner) return reject(403);
 
       const sql2 = "DELETE FROM assignments WHERE task = ? AND user = ?";
       db.run(sql2, [taskId, userId], (err) => {
-        if (err) reject(err);
+        if (err) return reject(err);
 
         resolve(null);
       });
@@ -114,7 +111,8 @@ exports.assignBalanced = function (owner) {
     const sql =
       "SELECT t1.id FROM tasks t1 LEFT JOIN assignments t2 ON t2.task = t1.id WHERE t1.owner = ? AND t2.task IS NULL";
     db.each(sql, [owner], (err, tasks) => {
-      if (err) reject(err);
+      if (err) return reject(err);
+
       exports.assignEach(tasks.id, owner).then((userid) => resolve(userid));
     });
   });

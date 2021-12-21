@@ -10,7 +10,7 @@ var {
 } = require("express-json-validator-middleware");
 
 var oas3Tools = require("oas3-tools");
-var serverPort = process.env.PORT;
+var serverPort = process.env.PORT || 3001;
 
 var taskController = require(path.join(__dirname, "controllers/Tasks"));
 var userController = require(path.join(__dirname, "controllers/Users"));
@@ -44,21 +44,14 @@ var validate = validator.validate;
 //Set authentication middleware
 app.use(passport.initialize());
 
-var cookieExtractor = function (req) {
-  var token = null;
-  if (req && req.cookies) {
-    token = req.cookies["jwt"];
-  }
-  return token;
+const JwtStrategy = require("passport-jwt").Strategy;
+const strategyOptions = {
+  jwtFromRequest: (req) => (req && req.cookies ? req.cookies["jwt"] : null),
+  secretOrKey:
+    "6xvL4xkAAbG49hcXf5GIYSvkDICiUAR6EdR5dLdwW7hMzUjjMUe9t6M5kSAYxsvX",
 };
-
-var JwtStrategy = require("passport-jwt").Strategy;
-var opts = {};
-opts.jwtFromRequest = cookieExtractor;
-opts.secretOrKey =
-  "6xvL4xkAAbG49hcXf5GIYSvkDICiUAR6EdR5dLdwW7hMzUjjMUe9t6M5kSAYxsvX";
 passport.use(
-  new JwtStrategy(opts, function (jwt_payload, done) {
+  new JwtStrategy(strategyOptions, function (jwt_payload, done) {
     return done(null, jwt_payload.user);
   })
 );

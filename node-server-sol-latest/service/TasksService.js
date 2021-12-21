@@ -3,6 +3,7 @@
 const Task = require("../components/task");
 const db = require("../components/db");
 var constants = require("../utils/constants.js");
+const { recurringQueries } = require("./utils");
 
 /**
  * Create a new task
@@ -28,11 +29,11 @@ exports.addTask = function (task, owner) {
         task.completed,
         owner,
       ],
-      function (err) {
-        if (err) {
-          reject(err);
-        } else {
-          var createdTask = new Task(
+      (err) => {
+        if (err) return reject(err);
+
+        resolve(
+          new Task(
             this.lastID,
             task.description,
             task.important,
@@ -41,9 +42,8 @@ exports.addTask = function (task, owner) {
             task.project,
             task.completed,
             task.active
-          );
-          resolve(createdTask);
-        }
+          )
+        );
       }
     );
   });
@@ -60,25 +60,21 @@ exports.addTask = function (task, owner) {
  **/
 exports.deleteTask = function (taskId, owner) {
   return new Promise((resolve, reject) => {
-    const sql1 = "SELECT owner FROM tasks t WHERE t.id = ?";
-    db.all(sql1, [taskId], (err, rows) => {
-      if (err) reject(err);
-      else if (rows.length === 0) reject(404);
-      else if (owner != rows[0].owner) {
-        reject(403);
-      } else {
-        const sql2 = "DELETE FROM assignments WHERE task = ?";
-        db.run(sql2, [taskId], (err) => {
-          if (err) reject(err);
-          else {
-            const sql3 = "DELETE FROM tasks WHERE id = ?";
-            db.run(sql3, [taskId], (err) => {
-              if (err) reject(err);
-              else resolve(null);
-            });
-          }
+    db.all(recurringQueries.GET_OWNER_BY_TASK_ID, [taskId], (err, rows) => {
+      if (err) return reject(err);
+      if (rows.length === 0) return reject(404);
+      if (owner != rows[0].owner) return reject(403);
+
+      const sql2 = "DELETE FROM assignments WHERE task = ?";
+      db.run(sql2, [taskId], (err) => {
+        if (err) return reject(err);
+
+        const sql3 = "DELETE FROM tasks WHERE id = ?";
+        db.run(sql3, [taskId], (err) => {
+          if (err) return reject(err);
+          resolve(null);
         });
-      }
+      });
     });
   });
 };
@@ -94,17 +90,16 @@ exports.deleteTask = function (taskId, owner) {
  **/
 exports.getPublicTasks = function (req) {
   return new Promise((resolve, reject) => {
-    var sql =
-      "SELECT t.id as tid, t.description, t.important, t.private, t.project, t.deadline,t.completed,c.total_rows FROM tasks t, (SELECT count(*) total_rows FROM tasks l WHERE l.private=0) c WHERE  t.private = 0 ";
+    var sql = `
+      SELECT t.id as tid, t.*
+      FROM tasks t
+      WHERE t.private = 0`;
     var limits = getPagination(req);
-    if (limits.length != 0) sql = sql + " LIMIT ?,?";
+    if (limits.length != 0) sql += " LIMIT ?,?";
     db.all(sql, limits, (err, rows) => {
-      if (err) {
-        reject(err);
-      } else {
-        let tasks = rows.map((row) => createTask(row));
-        resolve(tasks);
-      }
+      if (err) return reject(err);
+
+      resolve(rows.map((row) => createTask(row)));
     });
   });
 };
@@ -120,14 +115,14 @@ exports.getPublicTasks = function (req) {
  **/
 exports.getPublicTasksTotal = function () {
   return new Promise((resolve, reject) => {
-    var sqlNumOfTasks =
-      "SELECT count(*) total FROM tasks t WHERE  t.private = 0 ";
-    db.get(sqlNumOfTasks, [], (err, size) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(size.total);
-      }
+    const sqlNumOfTasks = `
+      SELECT count(*) AS total 
+      FROM tasks t
+      WHERE t.private = 0`;
+    db.get(sqlNumOfTasks, [], (err, row) => {
+      if (err) return reject(err);
+
+      resolve(row.total);
     });
   });
 };
@@ -144,26 +139,28 @@ exports.getPublicTasksTotal = function () {
  **/
 exports.getSingleTask = function (taskId, owner) {
   return new Promise((resolve, reject) => {
-    const sql1 =
-      "SELECT id as tid, description, important, private, project, deadline, completed, owner FROM tasks WHERE id = ?";
+    const sql1 = `
+      SELECT t.id as tid, t.*
+      FROM tasks t
+      WHERE t.id = ?`;
+
     db.all(sql1, [taskId], (err, rows) => {
-      if (err) reject(err);
-      else if (rows.length === 0) reject(404);
-      else if (rows[0].owner == owner) {
-        var task = createTask(rows[0]);
-        resolve(task);
-      } else {
-        const sql2 =
-          "SELECT t.id as total FROM tasks as t, assignments as a WHERE t.id = a.task AND t.id = ? AND a.user = ? ";
-        db.all(sql2, [taskId, owner], (err, rows2) => {
-          if (rows2.length === 0) {
-            reject(403);
-          } else {
-            var task = createTask(rows[0]);
-            resolve(task);
-          }
-        });
-      }
+      if (err) return reject(err);
+      if (rows.length === 0) return reject(404);
+      if (rows[0].owner == owner) return resolve(createTask(rows[0]));
+
+      const sql2 = `
+        SELECT t.id AS total 
+        FROM tasks as t, assignments as a 
+        WHERE t.id = a.task 
+        AND t.id = ? 
+        AND a.user = ?`;
+      db.all(sql2, [taskId, owner], (err, rows2) => {
+        if (err) return reject(err);
+        if (rows2.length === 0) return reject(403);
+
+        resolve(createTask(rows[0]));
+      });
     });
   });
 };
@@ -179,19 +176,17 @@ exports.getSingleTask = function (taskId, owner) {
  **/
 exports.getOwnedTasks = function (req) {
   return new Promise((resolve, reject) => {
-    var sql =
-      "SELECT t.id as tid, t.description, t.important, t.private, t.project, t.deadline,t.completed FROM tasks as t WHERE t.owner = ?";
-    var limits = getPagination(req);
+    let sql = `
+      SELECT t.id as tid, t.*
+      FROM tasks as t 
+      WHERE t.owner = ?`;
+    const limits = getPagination(req);
     if (limits.length != 0) sql = sql + " LIMIT ?,?";
-    limits.unshift(req.user);
 
-    db.all(sql, limits, (err, rows) => {
-      if (err) {
-        reject(err);
-      } else {
-        let tasks = rows.map((row) => createTask(row));
-        resolve(tasks);
-      }
+    db.all(sql, [req.user, ...limits], (err, rows) => {
+      if (err) return reject(err);
+
+      resolve(rows.map((row) => createTask(row)));
     });
   });
 };
@@ -207,19 +202,19 @@ exports.getOwnedTasks = function (req) {
  **/
 exports.getAssignedTasks = function (req) {
   return new Promise((resolve, reject) => {
-    var sql =
-      "SELECT t.id as tid, t.description, t.important, t.private, t.project, t.deadline,t.completed,a.active, u.id as uid, u.name, u.email FROM tasks as t, users as u, assignments as a WHERE t.id = a.task AND a.user = u.id AND u.id = ?";
-    var limits = getPagination(req);
+    let sql = `
+      SELECT t.id as tid, t.* , a.active, u.id as uid, u.*
+      FROM tasks as t, users as u, assignments as a 
+      WHERE t.id = a.task 
+      AND a.user = u.id 
+      AND u.id = ?`;
+    const limits = getPagination(req);
     if (limits.length != 0) sql = sql + " LIMIT ?,?";
-    limits.unshift(req.user);
 
-    db.all(sql, limits, (err, rows) => {
-      if (err) {
-        reject(err);
-      } else {
-        let tasks = rows.map((row) => createTask(row));
-        resolve(tasks);
-      }
+    db.all(sql, [req.user, ...limits], (err, rows) => {
+      if (err) return reject(err);
+
+      resolve(rows.map((row) => createTask(row)));
     });
   });
 };
@@ -235,14 +230,14 @@ exports.getAssignedTasks = function (req) {
  **/
 exports.getOwnedTasksTotal = function (req) {
   return new Promise((resolve, reject) => {
-    var sqlNumOfTasks =
-      "SELECT count(*) total FROM tasks as t WHERE t.owner = ?";
-    db.get(sqlNumOfTasks, req.user, (err, size) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(size.total);
-      }
+    const sqlNumOfTasks = `
+      SELECT count(*) AS total 
+      FROM tasks AS t 
+      WHERE t.owner = ?`;
+    db.get(sqlNumOfTasks, [req.user], (err, row) => {
+      if (err) return reject(err);
+
+      resolve(row.total);
     });
   });
 };
@@ -258,14 +253,15 @@ exports.getOwnedTasksTotal = function (req) {
  **/
 exports.getAssignedTasksTotal = function (req) {
   return new Promise((resolve, reject) => {
-    var sqlNumOfTasks =
-      "SELECT count(*) total FROM tasks as t, users as u, assignments as a WHERE t.id = a.task AND a.user = u.id AND u.id = ?";
-    db.get(sqlNumOfTasks, req.user, (err, size) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(size.total);
-      }
+    const sqlNumOfTasks = `
+      SELECT count(*) AS total 
+      FROM assignments as a 
+      WHERE a.user = ?`;
+
+    db.get(sqlNumOfTasks, [req.user], (err, row) => {
+      if (err) return reject(err);
+
+      resolve(row.total);
     });
   });
 };
@@ -283,48 +279,42 @@ exports.getAssignedTasksTotal = function (req) {
  **/
 exports.updateSingleTask = function (task, taskId, owner) {
   return new Promise((resolve, reject) => {
-    const sql1 = "SELECT owner FROM tasks t WHERE t.id = ?";
-    db.all(sql1, [taskId], (err, rows) => {
-      if (err) reject(err);
-      else if (rows.length === 0) reject(404);
-      else if (owner != rows[0].owner) {
-        reject(403);
-      } else {
-        const sql2 = "DELETE FROM assignments WHERE task = ?";
-        db.run(sql2, [taskId], (err) => {
-          if (err) reject(err);
-          else {
-            var sql3 = "UPDATE tasks SET description = ?";
-            var parameters = [task.description];
-            if (task.important != undefined) {
-              sql3 = sql3.concat(", important = ?");
-              parameters.push(task.important);
-            }
-            if (task.private != undefined) {
-              sql3 = sql3.concat(", private = ?");
-              parameters.push(task.private);
-            }
-            if (task.project != undefined) {
-              sql3 = sql3.concat(", project = ?");
-              parameters.push(task.project);
-            }
-            if (task.deadline != undefined) {
-              sql3 = sql3.concat(", deadline = ?");
-              parameters.push(task.deadline);
-            }
-            sql3 = sql3.concat(" WHERE id = ?");
-            parameters.push(task.id);
+    db.all(recurringQueries.GET_OWNER_BY_TASK_ID, [taskId], (err, rows) => {
+      if (err) return reject(err);
+      if (rows.length === 0) return reject(404);
+      if (owner != rows[0].owner) return reject(403);
 
-            db.run(sql3, parameters, function (err) {
-              if (err) {
-                reject(err);
-              } else {
-                resolve(null);
-              }
-            });
-          }
+      const sql2 = "DELETE FROM assignments WHERE task = ?";
+      db.run(sql2, [taskId], (err) => {
+        if (err) return reject(err);
+
+        var sql3 = "UPDATE tasks SET description = ?";
+        var parameters = [task.description];
+        if (task.important != undefined) {
+          sql3 = sql3.concat(", important = ?");
+          parameters.push(task.important);
+        }
+        if (task.private != undefined) {
+          sql3 = sql3.concat(", private = ?");
+          parameters.push(task.private);
+        }
+        if (task.project != undefined) {
+          sql3 = sql3.concat(", project = ?");
+          parameters.push(task.project);
+        }
+        if (task.deadline != undefined) {
+          sql3 = sql3.concat(", deadline = ?");
+          parameters.push(task.deadline);
+        }
+        sql3 = sql3.concat(" WHERE id = ?");
+        parameters.push(task.id);
+
+        db.run(sql3, parameters, (err) => {
+          if (err) return reject(err);
+
+          resolve(null);
         });
-      }
+      });
     });
   });
 };
@@ -341,28 +331,20 @@ exports.updateSingleTask = function (task, taskId, owner) {
  **/
 exports.completeTask = function (taskId, assignee) {
   return new Promise((resolve, reject) => {
-    const sql1 = "SELECT * FROM tasks t WHERE t.id = ?";
-    db.all(sql1, [taskId], (err, rows) => {
-      if (err) reject(err);
-      else if (rows.length === 0) reject(404);
-      else {
-        const sql2 =
-          "SELECT * FROM assignments a WHERE a.user = ? AND a.task = ?";
-        db.all(sql2, [assignee, taskId], (err, rows2) => {
-          if (err) reject(err);
-          else if (rows2.length === 0) reject(403);
-          else {
-            const sql3 = "UPDATE tasks SET completed = 1 WHERE id = ?";
-            db.run(sql3, [taskId], function (err) {
-              if (err) {
-                reject(err);
-              } else {
-                resolve(null);
-              }
-            });
-          }
-        });
-      }
+    const sql1 = `
+      SELECT * 
+      FROM assignments a 
+      WHERE a.user = ? AND a.task = ?`;
+    db.all(sql1, [assignee, taskId], (err, rows2) => {
+      if (err) return reject(err);
+      if (rows2.length === 0) return reject(404);
+
+      const sql2 = "UPDATE tasks SET completed = 1 WHERE id = ?";
+      db.run(sql2, [taskId], function (err) {
+        if (err) return reject(err);
+
+        resolve(null);
+      });
     });
   });
 };
@@ -371,29 +353,20 @@ exports.completeTask = function (taskId, assignee) {
  * Utility functions
  */
 const getPagination = function (req) {
-  var pageNo = parseInt(req.query.pageNo);
-  var size = constants.OFFSET;
-  var limits = [];
-  if (req.query.pageNo == null) {
-    pageNo = 1;
-  }
-  limits.push(size * (pageNo - 1));
-  limits.push(size);
-  return limits;
+  const pageNo = req.query.pageNo ? Number.parseInt(req.query.pageNo) : 1;
+
+  return [constants.OFFSET * (pageNo - 1), constants.OFFSET];
 };
 
 const createTask = function (row) {
-  const importantTask = row.important === 1 ? true : false;
-  const privateTask = row.private === 1 ? true : false;
-  const completedTask = row.completed === 1 ? true : false;
   return new Task(
     row.tid,
     row.description,
-    importantTask,
-    privateTask,
+    row.important === 1 ? true : false,
+    row.private === 1 ? true : false,
     row.deadline,
     row.project,
-    completedTask,
+    row.completed === 1 ? true : false,
     row.active
   );
 };
